@@ -2,7 +2,7 @@
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [faker.generate :as gen]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
+            [ring.adapter.jetty :refer :all]))
 
 (def para (atom (gen/paragraph {:lang           :en
                                 :sentence-range [1 5]})))
@@ -12,5 +12,6 @@
            (GET "/paragraph" [] para)
            (route/not-found "Not Found"))
 
-(def app
-  (wrap-defaults app-routes site-defaults))
+
+(defn main []
+  (run-jetty app-routes {:port 9002}))
