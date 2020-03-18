@@ -2,31 +2,21 @@
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [faker.generate :as gen]
-            [ring.adapter.jetty :refer :all]))
+            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
 
 (def para (atom (gen/paragraph {:lang           :en
                                 :sentence-range [1 5]})))
 
-(def default-headers {
-                      "Content-Type"                 "text/plain"
-                      "Access-Control-Allow-Origin"  "*"
-                      "Access-Control-Allow-Methods" "GET"
-                      "Access-Control-Allow-Headers" "X-Requested-With,Content-Type,Cache-Control,Origin,Accept"
-                      })
-
 (defn wrap-cors
-  ([body] (wrap-cors body nil nil))
-  ([body headers] (wrap-cors body headers nil))
-  ([body headers response]
-   (merge {:status  200
-           :headers (merge default-headers headers)
-           :body    body} response)))
+  [handler]
+  (fn
+    [request]
+    (assoc-in (handler request) [:headers "Access-Control-Allow-Origin"] "*")))
 
 (defroutes app-routes
-           (GET "/" [] (wrap-cors "Hello World"))
-           (GET "/paragraph" [] (wrap-cors @para))
-           (route/not-found (wrap-cors "Not Found")))
+           (GET "/" [] "Hello World")
+           (GET "/paragraph" [] @para)
+           (route/not-found "Not Found"))
 
 
-(defn main []
-  (run-jetty app-routes {:port 9002}))
+(def app (wrap-cors (wrap-defaults app-routes site-defaults)))
