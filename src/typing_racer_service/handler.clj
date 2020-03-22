@@ -4,9 +4,13 @@
             [clojure.data.json :as json]
             [faker.generate :as gen]
             [clojure.string :as str]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
+            [ring.middleware.defaults :refer [wrap-defaults site-defaults]])
+  (:import (java.util UUID)))
 
-(def para (atom (gen/sentence {:lang :en})))
+(defn random-para []
+  (gen/sentence {:lang :en}))
+
+(def para (atom (random-para)))
 (def start-time (atom nil))
 (def races (atom {}))
 
@@ -30,17 +34,15 @@
                    (.getTime (java.util.Date.))))
 
 (defn random-uuid []
-  (str (java.util.UUID/randomUUID)))
+  (str (UUID/randomUUID)))
 
 (defn create-race []
-  (let [race-id (random-uuid) player-id (random-uuid)]
-    (swap! races #(assoc % race-id {:player-id player-id}))
-    {"race-id" race-id "player-id" player-id}))
+  (let [race-id (random-uuid) player-id (random-uuid) para (random-para)]
+    (swap! races #(assoc % race-id {:player-id player-id :para para}))
+    {"race-id" race-id "player-id" player-id "paragraph" para}))
 
 (defn host-race []
-  (map
-    #(str/join "=" %)
-    (into [] (create-race))))
+  (create-race))
 
 (defroutes app-routes
            (GET "/" [] "Hello World")
