@@ -1,50 +1,57 @@
 (ns typing-racer-service.handler
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
+            [clojure.data.json :as json]
             [faker.generate :as gen]
+            [clojure.string :as str]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
-
-(def races (atom {1234
-                  {:no-of-players 2
-                   :paragraph     (gen/sentence {:lang :en})
-                   :players       []}}))
 
 (def para (atom (gen/sentence {:lang :en})))
 (def start-time (atom nil))
+(def races (atom {}))
 
-(defn convert-to-minutes
-  [ms]
+(defn convert-to-minutes [ms]
   (float (/ ms 60000)))
 
-(defn calculate-speed
-  [st words-count et]
-  (Math/round (/ words-count (convert-to-minutes (- et st)))))
+(defn calculate-speed [st words et]
+  (Math/round (/ (count (str/split words #" "))
+                 (convert-to-minutes (- et st)))))
 
-(defn wrap-cors
-  [handler]
+(defn wrap-cors [handler]
   (fn [request]
-    (assoc-in (handler request) [:headers "Access-Control-Allow-Origin"] "*")))
+    (assoc-in (handler request)
+              [:headers "Access-Control-Allow-Origin"] "*")))
 
 (defn start-race []
   (reset! start-time (.getTime (java.util.Date.))))
 
-(defn end-race [words-count]
-  (calculate-speed @start-time words-count (.getTime (java.util.Date.))))
+(defn end-race []
+  (calculate-speed @start-time @para
+                   (.getTime (java.util.Date.))))
 
-(defn join-race
-  [player]
-  (swap! races
-         #(update-in % [(read-string (:race-id player)) :players]
-                     (fn [players] (conj players (merge player {:speed 0}))))))
+(defn random-uuid []
+  (str (java.util.UUID/randomUUID)))
+
+(defn create-race []
+  (let [race-id (random-uuid) player-id (random-uuid)]
+    (swap! races #(assoc % race-id {:player-id player-id}))
+    {"race-id" race-id "player-id" player-id}))
+
+(defn host-race []
+  (map
+    #(str/join "=" %)
+    (into [] (create-race))))
 
 (defroutes app-routes
+           (GET "/" [] "Hello World")
+           (POST "/host" [] (json/json-str (host-race)))
            (GET "/paragraph" [] @para)
            (POST "/start-race" [] (str (start-race)))
-           (POST "/end-race" {:keys [params]}
-             (str (end-race (read-string (:words-count params))) " WPM"))
-           (POST "/join-race" {:keys [params]}
-             (join-race params) {:status 200})
+           (POST "/end-race" [] (str (end-race) " WPM"))
            (route/not-found "Not Found"))
 
 
-(def app (wrap-cors (wrap-defaults app-routes (assoc-in site-defaults [:security :anti-forgery] false))))
+(def app (wrap-cors
+           (wrap-defaults
+             app-routes
+             (assoc-in site-defaults [:security :anti-forgery] false))))
