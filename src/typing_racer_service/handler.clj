@@ -44,6 +44,17 @@
 (defn host-race [req]
   (create-race (:host (:params req))))
 
+(defn join-race [req]
+  (let [race-id (:race-id (:params req))
+        name (:name (:params req))
+        player-id (random-uuid)
+        para (random-para)]
+    (if (contains? @races race-id)
+      (do (swap! races #(assoc-in % [race-id :players] (vec (concat (:players (@races race-id)) [{:name name :player-id player-id}]))))
+          {"race-id" race-id "name" name "player-d" player-id "paragraph" para})
+      {:status 400
+       :body   (str "No such race with race id " race-id)})))
+
 (defn get-race [req]
   (json/json-str (@races (:race-id (:params req)))))
 
@@ -51,6 +62,7 @@
            (GET "/" [] "Hello World")
            (GET "/race" req (get-race req))
            (POST "/host" req (json/json-str (host-race req)))
+           (POST "/join-race" req (json/json-str (join-race req)))
            (GET "/paragraph" [] @para)
            (POST "/start-race" [] (str (start-race)))
            (POST "/end-race" [] (str (end-race) " WPM"))
