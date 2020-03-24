@@ -38,14 +38,18 @@
 
 (defn create-race []
   (let [race-id (random-uuid) player-id (random-uuid) para (random-para)]
-    (swap! races #(assoc % race-id {:player-id player-id :para para}))
+    (swap! races #(assoc % race-id {:para para :players [{:player-id player-id}]}))
     {"race-id" race-id "player-id" player-id "paragraph" para}))
 
 (defn host-race []
   (create-race))
 
+(defn get-race [req]
+  (json/json-str (@races (:race-id (:params req)))))
+
 (defroutes app-routes
            (GET "/" [] "Hello World")
+           (GET "/race" req (get-race req))
            (POST "/host" [] (json/json-str (host-race)))
            (GET "/paragraph" [] @para)
            (POST "/start-race" [] (str (start-race)))
