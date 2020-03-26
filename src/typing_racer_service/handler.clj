@@ -34,11 +34,11 @@
                    (.getTime (java.util.Date.))))
 
 (defn random-uuid []
-  (str (UUID/randomUUID)))
+  (subs (str (UUID/randomUUID)) 32))
 
 (defn create-race [host]
   (let [race-id (random-uuid) player-id (random-uuid) para (random-para)]
-    (swap! races #(assoc % race-id {:para para :players [{:name host :player-id player-id}]}))
+    (swap! races #(assoc % race-id {:paragraph para :players [{:name host :player-id player-id}]}))
     {"race-id" race-id "name" host "player-id" player-id "paragraph" para}))
 
 (defn host-race [req]
@@ -47,11 +47,10 @@
 (defn join-race [req]
   (let [race-id (:race-id (:params req))
         name (:name (:params req))
-        player-id (random-uuid)
-        para (random-para)]
+        player-id (random-uuid)]
     (if (contains? @races race-id)
       (do (swap! races #(assoc-in % [race-id :players] (vec (concat (:players (@races race-id)) [{:name name :player-id player-id}]))))
-          {"race-id" race-id "name" name "player-d" player-id "paragraph" para})
+          {"race-id" race-id "name" name "player-d" player-id "paragraph" (:paragraph (@races race-id))})
       {:status 400
        :body   (str "No such race with race id " race-id)})))
 
