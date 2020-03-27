@@ -49,7 +49,7 @@
         player-id (random-uuid)]
     (if (contains? @races race-id)
       (do (swap! races #(assoc-in % [race-id :players] (vec (concat (:players (@races race-id)) [{:name name :player-id player-id}]))))
-          (json/json-str {"race-id" race-id "name" name "player-d" player-id "paragraph" (:paragraph (@races race-id))}))
+          (json/json-str {"race-id" race-id "name" name "player-id" player-id "paragraph" (:paragraph (@races race-id))}))
       (json/json-str {:status 400
                       :body   (str "No such race with race id " race-id)}))))
 
