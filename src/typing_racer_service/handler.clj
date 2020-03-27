@@ -1,6 +1,5 @@
 (ns typing-racer-service.handler
   (:require [compojure.core :refer :all]
-            [compojure.route :as route]
             [clojure.data.json :as json]
             [faker.generate :as gen]
             [clojure.string :as str]
@@ -42,7 +41,7 @@
     {"race-id" race-id "name" host "player-id" player-id "paragraph" para}))
 
 (defn host-race [req]
-  (create-race (:host (:params req))))
+  (json/json-str (create-race (:host (:params req)))))
 
 (defn join-race [req]
   (let [race-id (:race-id (:params req))
@@ -50,25 +49,9 @@
         player-id (random-uuid)]
     (if (contains? @races race-id)
       (do (swap! races #(assoc-in % [race-id :players] (vec (concat (:players (@races race-id)) [{:name name :player-id player-id}]))))
-          {"race-id" race-id "name" name "player-d" player-id "paragraph" (:paragraph (@races race-id))})
-      {:status 400
-       :body   (str "No such race with race id " race-id)})))
+          (json/json-str {"race-id" race-id "name" name "player-d" player-id "paragraph" (:paragraph (@races race-id))}))
+      (json/json-str {:status 400
+                      :body   (str "No such race with race id " race-id)}))))
 
 (defn get-race [req]
   (json/json-str (@races (:race-id (:params req)))))
-
-(defroutes app-routes
-           (GET "/" [] "Hello World")
-           (GET "/race" req (get-race req))
-           (POST "/host" req (json/json-str (host-race req)))
-           (POST "/join-race" req (json/json-str (join-race req)))
-           (GET "/paragraph" [] @para)
-           (POST "/start-race" [] (str (start-race)))
-           (POST "/end-race" [] (str (end-race) " WPM"))
-           (route/not-found "Not Found"))
-
-
-(def app (wrap-cors
-           (wrap-defaults
-             app-routes
-             (assoc-in site-defaults [:security :anti-forgery] false))))

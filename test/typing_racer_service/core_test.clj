@@ -1,7 +1,7 @@
-(ns typing-racer-service.handler-test
+(ns typing-racer-service.core-test
   (:require [clojure.test :refer :all]
             [ring.mock.request :as mock]
-            [typing-racer-service.handler :refer :all]))
+            [typing-racer-service.core :refer :all]))
 
 (deftest test-app
   (testing "main route"
