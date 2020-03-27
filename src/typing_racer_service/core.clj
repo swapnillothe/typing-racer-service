@@ -18,4 +18,4 @@
 (def app (wrap-cors
            (wrap-defaults
              app-routes
-             (site-defaults [:security :anti-forgery] false))))
+             (assoc-in site-defaults [:security :anti-forgery] false))))
