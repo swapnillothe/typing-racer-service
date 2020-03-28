@@ -35,23 +35,63 @@
 (defn random-uuid []
   (subs (str (UUID/randomUUID)) 32))
 
-(defn create-race [host]
-  (let [race-id (random-uuid) player-id (random-uuid) para (random-para)]
-    (swap! races #(assoc % race-id {:paragraph para :players [{:name host :player-id player-id}]}))
-    {"race-id" race-id "name" host "player-id" player-id "paragraph" para}))
+(defn race-details [race-id para name player-id]
+  (json/json-str
+    {"race-id"   race-id
+     "name"      name
+     "player-id" player-id
+     "paragraph" para}))
+
+(defn add-to-races [keys value]
+  (swap! races #(assoc-in % keys value)))
+
+(defn new-player [name id]
+  {:name name :player-id id})
+
+(defn new-race [para host host-id]
+  {:paragraph para :players [(new-player host host-id)]})
+
+(defn from-race [key race-id]
+  (key (@races race-id)))
+
+(defn paragraph [race-id]
+  (from-race :paragraph race-id))
+
+(defn players [race-id]
+  (from-race :players race-id))
+
+(defn add-player [race-id name id]
+  (merge (players race-id) (new-player name id)))
+
+(defn create-race [race-id host host-id para]
+  (add-to-races [race-id] (new-race para host host-id))
+  (race-details race-id para host host-id))
+
+(defn join-player [race-id name player-id para]
+  (add-to-races [race-id :players] (add-player race-id name player-id))
+  (race-details race-id para name player-id))
+
+(defn no-such-race [race-id]
+  (json/json-str {:status 400
+                  :body   (str "No such race with race id " race-id)}))
 
 (defn host-race [req]
-  (json/json-str (create-race (:host (:params req)))))
+  (create-race
+    (random-uuid)
+    (:host (:params req))
+    (random-uuid)
+    (random-para)))
+
+(defn race-exist? [race-id]
+  (contains? @races race-id))
 
 (defn join-race [req]
   (let [race-id (:race-id (:params req))
         name (:name (:params req))
         player-id (random-uuid)]
-    (if (contains? @races race-id)
-      (do (swap! races #(assoc-in % [race-id :players] (vec (concat (:players (@races race-id)) [{:name name :player-id player-id}]))))
-          (json/json-str {"race-id" race-id "name" name "player-id" player-id "paragraph" (:paragraph (@races race-id))}))
-      (json/json-str {:status 400
-                      :body   (str "No such race with race id " race-id)}))))
+    (if (race-exist? race-id)
+      (join-player race-id name player-id (paragraph race-id))
+      (no-such-race race-id))))
 
 (defn get-race [req]
   (json/json-str (@races (:race-id (:params req)))))
