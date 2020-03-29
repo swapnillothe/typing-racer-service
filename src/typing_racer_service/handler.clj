@@ -1,9 +1,12 @@
 (ns typing-racer-service.handler
   (:require [compojure.core :refer :all]
-            [clojure.data.json :as json]
-            [faker.generate :as gen]
-            [clojure.string :as str]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]])
+		  [clojure.data.json :as json]
+		  [faker.generate :as gen]
+		  [clojure.string :as str]
+		  [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
+		  [faker.generate :as gen]
+		  [clojure.string :as str]
+		  [ring.util.response :as r])
   (:import (java.util UUID)))
 
 (defn random-para []
@@ -18,29 +21,28 @@
 
 (defn calculate-speed [st words et]
   (Math/round (/ (count (str/split words #" "))
-                 (convert-to-minutes (- et st)))))
+			  (convert-to-minutes (- et st)))))
 
 (defn wrap-cors [handler]
   (fn [request]
-    (assoc-in (handler request)
-              [:headers "Access-Control-Allow-Origin"] "*")))
+	 (assoc-in (handler request)
+			 [:headers "Access-Control-Allow-Origin"] "*")))
 
 (defn start-race []
   (reset! start-time (.getTime (java.util.Date.))))
 
 (defn end-race []
   (calculate-speed @start-time @para
-                   (.getTime (java.util.Date.))))
+			    (.getTime (java.util.Date.))))
 
 (defn random-uuid []
   (subs (str (UUID/randomUUID)) 32))
 
 (defn race-details [race-id para name player-id]
-  (json/json-str
-    {"race-id"   race-id
-     "name"      name
-     "player-id" player-id
-     "paragraph" para}))
+  {:body {:race-id   race-id
+		:name      name
+		:player-id player-id
+		:paragraph para}})
 
 (defn add-to-races [keys value]
   (swap! races #(assoc-in % keys value)))
@@ -75,7 +77,7 @@
 
 (defn no-such-race [race-id]
   {:status 400
-   :body   (json/json-str {:error (str "No such race with race id " race-id "!")})})
+   :body   {:error (str "No such race with race id " race-id "!")}})
 
 (defn host-race [req]
   (create-race
@@ -88,19 +90,31 @@
 (defn race-exist? [race-id]
   (contains? @races race-id))
 
-(defn join-race [req]
-  (let [race-id (:race-id (:params req))
-        name (:name (:params req))
-        player-id (random-uuid)]
+(defn join-race [player]
+  (let [race-id (:race-id player)
+	   name (:name player)
+	   player-id (random-uuid)]
     (if (race-exist? race-id)
-      (join-player race-id name player-id (paragraph race-id))
-      (no-such-race race-id))))
+	   (join-player race-id name player-id (paragraph race-id))
+	 (no-such-race race-id))))
 
 (defn all-joined? [race-id]
   (= (count (players race-id))
-     (from-race :number-of-players race-id)))
+	(from-race :number-of-players race-id)))
 
 (defn get-race [req]
   (let [race-id (:race-id (:params req))]
     (json/json-str
-      (assoc (@races race-id) :all-joined? (all-joined? race-id)))))
+	 (assoc (@races race-id) :all-joined? (all-joined? race-id)))))
+
+(defn get-race [req]
+  (json/json-str (@races (:race-id (:params req)))))
+
+(defn number-of-joined-players
+  [race-id]
+  (count ((@races race-id) :players)))
+
+(defn has-all-joined
+  [race-id]
+  (= ((@races race-id) :number-of-players) (number-of-joined-players race-id)))
+
