@@ -48,8 +48,10 @@
 (defn new-player [name id]
   {:name name :player-id id})
 
-(defn new-race [para host host-id]
-  {:paragraph para :players [(new-player host host-id)]})
+(defn new-race [para no-of-players host host-id]
+  {:paragraph         para
+   :number-of-players no-of-players
+   :players           [(new-player host host-id)]})
 
 (defn from-race [key race-id]
   (key (@races race-id)))
@@ -63,8 +65,8 @@
 (defn add-player [race-id name id]
   (merge (players race-id) (new-player name id)))
 
-(defn create-race [race-id host host-id para]
-  (add-to-races [race-id] (new-race para host host-id))
+(defn create-race [race-id host host-id no-of-players para]
+  (add-to-races [race-id] (new-race para no-of-players host host-id))
   (race-details race-id para host host-id))
 
 (defn join-player [race-id name player-id para]
@@ -80,6 +82,7 @@
     (random-uuid)
     (:host (:params req))
     (random-uuid)
+    (read-string (:number-of-players (:params req)))
     (random-para)))
 
 (defn race-exist? [race-id]
@@ -93,5 +96,11 @@
       (join-player race-id name player-id (paragraph race-id))
       (no-such-race race-id))))
 
+(defn all-joined? [race-id]
+  (= (count (players race-id))
+     (from-race :number-of-players race-id)))
+
 (defn get-race [req]
-  (json/json-str (@races (:race-id (:params req)))))
+  (let [race-id (:race-id (:params req))]
+    (json/json-str
+      (assoc (@races race-id) :all-joined? (all-joined? race-id)))))
