@@ -72,8 +72,8 @@
   (race-details race-id para name player-id))
 
 (defn no-such-race [race-id]
-  (json/json-str {:status 400
-                  :body   (str "No such race with race id " race-id)}))
+  {:status 400
+   :body   (json/json-str {:error (str "No such race with race id " race-id "!")})})
 
 (defn host-race [req]
   (create-race
