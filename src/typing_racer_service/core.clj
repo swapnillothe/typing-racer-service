@@ -14,6 +14,7 @@
 		 (GET "/wait-status" [race-id] {:body {:hasAllJoined          (has-all-joined race-id)
 									    :numberOfJoinedPlayers (number-of-joined-players race-id)}})
 		 (POST "/end-race" [race-id] (str (end-race race-id) " WPM"))
+		 (GET "/result" [race-id] (get-result race-id))
 		 (route/not-found "Not Found"))
 
 (def app (wrap-json-response

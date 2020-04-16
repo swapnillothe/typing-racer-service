@@ -6,7 +6,7 @@
 		  [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
 		  [faker.generate :as gen]
 		  [clojure.string :as str]
-		  [ring.util.response :as r])
+		  [typing-racer-service.utils :refer :all])
   (:import (java.util UUID)))
 
 (defn random-para []
@@ -110,3 +110,6 @@
 
 (defn get-race [req]
   (json/json-str (@races (:race-id (:params req)))))
+
+(defn get-result [race-id]
+  (map (partial (flip select-keys) [:name :speed]) (get-in @races [race-id :players])))
