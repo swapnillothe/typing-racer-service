@@ -12,9 +12,18 @@
 (defn random-para []
   (gen/sentence {:lang :en}))
 
-(def para (atom (random-para)))
-(def start-time (atom nil))
 (def races (atom {}))
+
+(defn number-of-joined-players
+  [race-id]
+  (count ((@races race-id) :players)))
+
+(defn has-all-joined
+  [race-id]
+  (= ((@races race-id) :number-of-players) (number-of-joined-players race-id)))
+
+(defn race-exist? [race-id]
+  (contains? @races race-id))
 
 (defn convert-to-minutes [ms]
   (float (/ ms 60000)))
@@ -28,11 +37,12 @@
 	 (assoc-in (handler request)
 			 [:headers "Access-Control-Allow-Origin"] "*")))
 
-(defn start-race []
-  (reset! start-time (.getTime (java.util.Date.))))
+(defn start-race [race-id]
+  (swap! races #(assoc-in % [race-id :start-time] (.getTime (java.util.Date.)))))
 
-(defn end-race []
-  (calculate-speed @start-time @para
+(defn end-race [race-id]
+  (calculate-speed (get-in @races [race-id :start-time])
+			    (get-in @races [race-id :paragraph])
 			    (.getTime (java.util.Date.))))
 
 (defn random-uuid []
@@ -72,8 +82,10 @@
   (race-details race-id para host host-id))
 
 (defn join-player [race-id name player-id para]
-  (add-to-races [race-id :players] (add-player race-id name player-id))
-  (race-details race-id para name player-id))
+  (when
+    (race-exist? race-id)
+    (do (add-to-races [race-id :players] (add-player race-id name player-id))
+	   (race-details race-id para name player-id))))
 
 (defn no-such-race [race-id]
   {:status 400
@@ -87,34 +99,14 @@
     (read-string (:number-of-players (:params req)))
     (random-para)))
 
-(defn race-exist? [race-id]
-  (contains? @races race-id))
-
 (defn join-race [player]
   (let [race-id (:race-id player)
 	   name (:name player)
 	   player-id (random-uuid)]
-    (if (race-exist? race-id)
-	   (join-player race-id name player-id (paragraph race-id))
+    (if-let [player (join-player race-id name player-id (paragraph race-id))]
+	 (when (has-all-joined race-id)
+	   (do (start-race race-id) player))
 	 (no-such-race race-id))))
-
-(defn all-joined? [race-id]
-  (= (count (players race-id))
-	(from-race :number-of-players race-id)))
-
-(defn get-race [req]
-  (let [race-id (:race-id (:params req))]
-    (json/json-str
-	 (assoc (@races race-id) :all-joined? (all-joined? race-id)))))
 
 (defn get-race [req]
   (json/json-str (@races (:race-id (:params req)))))
-
-(defn number-of-joined-players
-  [race-id]
-  (count ((@races race-id) :players)))
-
-(defn has-all-joined
-  [race-id]
-  (= ((@races race-id) :number-of-players) (number-of-joined-players race-id)))
-

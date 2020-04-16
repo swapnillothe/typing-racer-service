@@ -13,9 +13,7 @@
 		 (POST "/join-race" {:keys [params]} (join-race params))
 		 (GET "/wait-status" [race-id] {:body {:hasAllJoined          (has-all-joined race-id)
 									    :numberOfJoinedPlayers (number-of-joined-players race-id)}})
-		 (GET "/paragraph" [] @para)
-		 (POST "/start-race" [] (str (start-race)))
-		 (POST "/end-race" [] (str (end-race) " WPM"))
+		 (POST "/end-race" [race-id] (str (end-race race-id) " WPM"))
 		 (route/not-found "Not Found"))
 
 (def app (wrap-json-response
