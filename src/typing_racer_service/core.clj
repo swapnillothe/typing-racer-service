@@ -13,7 +13,8 @@
 		 (POST "/join-race" {:keys [params]} (join-race params))
 		 (GET "/wait-status" [race-id] {:body {:hasAllJoined          (has-all-joined race-id)
 									    :numberOfJoinedPlayers (number-of-joined-players race-id)}})
-		 (POST "/end-race" [race-id] (str (end-race race-id) " WPM"))
+		 (POST "/end-race" [race-id player-id] (str (end-race race-id player-id) " WPM"))
+		 (POST "/speed" [race-id player-id typed] (update-speed race-id player-id typed))
 		 (GET "/result" [race-id] (get-result race-id))
 		 (route/not-found "Not Found"))
 

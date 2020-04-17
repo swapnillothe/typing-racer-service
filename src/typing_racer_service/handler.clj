@@ -40,7 +40,19 @@
 (defn start-race [race-id]
   (swap! races #(assoc-in % [race-id :start-time] (.getTime (java.util.Date.)))))
 
-(defn end-race [race-id]
+(defn get-player-index [race-id player-id]
+  (let [players (get-in @races [race-id :players])]
+    (.indexOf players (first (filter #(= (% :player-id) player-id) players)))))
+
+(defn update-speed [race-id player-id typed]
+  (swap! races #(assoc-in %
+					 [race-id :players (get-player-index race-id player-id) :speed]
+					 (calculate-speed (get-in @races [race-id :start-time])
+								   typed
+								   (.getTime (java.util.Date.))))))
+
+(defn end-race [race-id player-id]
+  (update-speed race-id player-id (get-in @races [race-id :paragraph]))
   (calculate-speed (get-in @races [race-id :start-time])
 			    (get-in @races [race-id :paragraph])
 			    (.getTime (java.util.Date.))))
@@ -58,7 +70,7 @@
   (swap! races #(assoc-in % keys value)))
 
 (defn new-player [name id]
-  {:name name :player-id id})
+  {:name name :player-id id :speed 0})
 
 (defn new-race [para no-of-players host host-id]
   {:paragraph         para
@@ -112,4 +124,5 @@
   (json/json-str (@races (:race-id (:params req)))))
 
 (defn get-result [race-id]
-  (map (partial (flip select-keys) [:name :speed]) (get-in @races [race-id :players])))
+  (map #(update % :speed (fn [speed] (str speed " WPM")))
+	  (map (partial (flip select-keys) [:name :speed]) (get-in @races [race-id :players]))))
